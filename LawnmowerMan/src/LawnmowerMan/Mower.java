@@ -1,7 +1,5 @@
 package LawnmowerMan;
 
-import java.awt.Color;
-
 import javax.swing.SwingUtilities;
 
 public class Mower
@@ -11,6 +9,9 @@ public class Mower
     int power;
     Cutter cutter;
     State state;
+    private volatile boolean isPaused = false;
+    private volatile boolean isReset = false;
+    private Thread mowingThread;
 
     private GUI gui;
         
@@ -22,93 +23,137 @@ public class Mower
         this.state = new State();
         
     }
+    public void startMowing(int width, int height) {
+        if (mowingThread != null && mowingThread.isAlive()) {
+            resume();
+            return;
+        }
 
-    public static void PowerOn(Mower mower, int width, int height) {
-        // Create a new thread for the mowing logic
-        new Thread(() -> {
-            mower.power = 1;
-            mower.state.setDirection(1); // Start heading east
-            mower.state.setX(0);
-            mower.state.setY(0);
-    
-            while (!Sensor.isBottomReached(mower.state.getY(), height)) {
-                switch (mower.state.getDirection()) {
-                    case 1: // Heading east
-                        while (!Sensor.isEdgeReached(mower.state.getX(), width)) {
-                            updateMowerAndGUI(mower);
-                            mower.state.setX(mower.state.getX() + 1);
-                            mower.location = new Square(mower.state.getX(), mower.state.getY());
-                        }
-                        mower.state.setX(mower.state.getX() - 1);
-                        mower.location = new Square(mower.state.getX(), mower.state.getY());
-                        mower.state.setDirection(2); // Change direction to south
-                        break;
-    
-                    case 2: // East side Heading south
-                        if (!Sensor.isBottomReached(mower.state.getY(), height)) {
-                            mower.state.setY(mower.state.getY() + 1);
-                            mower.location = new Square(mower.state.getX(), mower.state.getY());
-                            updateMowerAndGUI(mower);
-                            mower.state.setX(mower.state.getX() - 1);
-                            mower.location = new Square(mower.state.getX(), mower.state.getY());
-                        }
-                        mower.state.setDirection(3); // Change direction to west
-                        break;
-    
-                    case 3: // Heading west
-                        while (!Sensor.isEdgeReached(mower.state.getX(), width)) {
-                            updateMowerAndGUI(mower);
-                            mower.state.setX(mower.state.getX() - 1);
-                            mower.location = new Square(mower.state.getX(), mower.state.getY());
-                        }
-                        mower.state.setDirection(4); // Change direction to south
-                        break;
-    
-                    case 4: // Heading south again
-                        if (!Sensor.isBottomReached(mower.state.getY(), height)) {
-                            mower.state.setY(mower.state.getY() + 1);
-                            mower.location = new Square(mower.state.getX(), mower.state.getY());
-                            updateMowerAndGUI(mower);
-                            mower.state.setX(mower.state.getX() + 1);
-                            mower.location = new Square(mower.state.getX(), mower.state.getY());
-                        }
-                        mower.state.setDirection(1); // Change direction to east
-                        break;
-    
-                    default:
-                        System.out.println("How on Earth did I get here?");
+        isReset = false;
+        mowingThread = new Thread(() -> powerOn(width, height));
+        mowingThread.start();
+    }
+
+    private void powerOn(int width, int height) {
+        power = 1;
+        if (!isReset) {
+            state.setDirection(1); // Start heading east
+            state.setX(0);
+            state.setY(0);
+        }
+
+        while (!Sensor.isBottomReached(state.getY(), height) && !isReset) {
+            if (isPaused) {
+                synchronized (this) {
+                    try {
+                        wait();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
                 }
             }
-            // Final update after completing the lawn
-            mower.state.setX(mower.state.getX() + 1);
-            mower.location = new Square(mower.state.getX(), mower.state.getY());
-            updateMowerAndGUI(mower);
-        }).start();
-    }
-    
-    private static void updateMowerAndGUI(Mower mower) {
-        try {
-            Thread.sleep(10); // Wait for 100ms between cuts
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            if (isReset) break;
+
+            switch (state.getDirection()) {
+                case 1: // Heading east
+                    while (!Sensor.isEdgeReached(state.getX(), width) && !isPaused && !isReset) {
+                        updateMowerAndGUI();
+                        state.setX(state.getX() + 1);
+                        location = new Square(state.getX(), state.getY());
+                    }
+                    if (!isPaused && !isReset) {
+                        state.setX(state.getX() - 1);
+                        location = new Square(state.getX(), state.getY());
+                        state.setDirection(2); // Change direction to south
+                    }
+                    break;
+
+                case 2: // East side Heading south
+                    if (!Sensor.isBottomReached(state.getY(), height) && !isPaused && !isReset) {
+                        state.setY(state.getY() + 1);
+                        location = new Square(state.getX(), state.getY());
+                        updateMowerAndGUI();
+                        state.setX(state.getX() - 1);
+                        location = new Square(state.getX(), state.getY());
+                        state.setDirection(3); // Change direction to west
+                    }
+                    break;
+
+                case 3: // Heading west
+                    while (!Sensor.isEdgeReached(state.getX(), width) && !isPaused && !isReset) {
+                        updateMowerAndGUI();
+                        state.setX(state.getX() - 1);
+                        location = new Square(state.getX(), state.getY());
+                    }
+                    if (!isPaused && !isReset) {
+                        state.setDirection(4); // Change direction to south
+                    }
+                    break;
+
+                case 4: // Heading south again
+                    if (!Sensor.isBottomReached(state.getY(), height) && !isPaused && !isReset) {
+                        state.setY(state.getY() + 1);
+                        location = new Square(state.getX(), state.getY());
+                        updateMowerAndGUI();
+                        state.setX(state.getX() + 1);
+                        location = new Square(state.getX(), state.getY());
+                        state.setDirection(1); // Change direction to east
+                    }
+                    break;
+
+                default:
+                    System.out.println("How on Earth did I get here?");
+            }
         }
-    
+        if (!isReset) {
+            // Final update after completing the lawn
+            state.setX(state.getX() + 1);
+            location = new Square(state.getX(), state.getY());
+            updateMowerAndGUI();
+        }
+    }
+
+    public void pause() {
+        this.isPaused = true;
+    }
+
+    public void resume() {
+        this.isPaused = false;
+        synchronized (this) {
+            this.notifyAll();
+        }
+    }
+
+    public void reset() {
+        pause();
+        isReset = true;
+        if (mowingThread != null) {
+            mowingThread.interrupt();
+        }
+        state = new State();
+        location = new Square(0, 0);
+        isPaused = false;
+        isReset = false;
+    }
+
+    private void updateMowerAndGUI() {
+        try {
+            Thread.sleep(10); // Wait for 10ms between cuts
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         SwingUtilities.invokeLater(() -> {
-            Cutter.Cut(mower, mower.gui);
-            mower.gui.updateSquare(mower.location);
-            mower.gui.repaint();
+            Cutter.Cut(this, gui);
+            gui.updateSquare(location);
+            gui.repaint();
         });
-    
-        // Add a small delay to allow GUI to repaint
+
         try {
             Thread.sleep(50);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            Thread.currentThread().interrupt();
         }
-    }
-
-    public static void Pause()
-    {
-        //mower.state.Pause();
     }
 }

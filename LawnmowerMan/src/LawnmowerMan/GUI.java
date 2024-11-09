@@ -18,11 +18,15 @@ public class GUI extends JFrame
     private JButton resetButton;
     private JPanel lawnPanel;
     private Lawn lawn;
+    private boolean isRunning = false;
+    private Timer timer;
+    private Mower mower;
 
     public GUI(int width, int height) {
         lawn = new Lawn(width, height);
         initializeUI();
         setVisible(true);
+        this.mower = new Mower(this);
     }
 
     private void initializeUI() {
@@ -91,43 +95,53 @@ public class GUI extends JFrame
         startButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String lengthText = lengthField.getText().trim(); // Get and trim input
-                String widthText = widthField.getText().trim();   // Get and trim input
-                
-                // Check if either field is empty
-                if (lengthText.isEmpty() || widthText.isEmpty()) {
-                    JOptionPane.showMessageDialog(GUI.this, "Please enter both length and width.", "Input Error", JOptionPane.ERROR_MESSAGE);
-                    return; // Exit if inputs are invalid
-                }
-        
-                try {
-                    int length = Integer.parseInt(lengthText); // Parse length
-                    int width = Integer.parseInt(widthText);   // Parse width
-                    lawn.initializeLawn(width, length);
-                    repaint();
-                    ControlSW.startButtonClicked(length, width, GUI.this); // Call your method with valid inputs
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(GUI.this, "Please enter valid numbers for length and width.", "Input Error", JOptionPane.ERROR_MESSAGE);
+                if (!isRunning) {
+                    isRunning = true;
+                    startButton.setText("Resume");
+                    if (lawn == null) {
+                        int length = Integer.parseInt(lengthField.getText());
+                        int width = Integer.parseInt(widthField.getText());
+                        lawn = new Lawn(length, width);
+                    }
+                    mower.startMowing(lawn.width, lawn.height);
+                } else {
+                    mower.resume();
                 }
             }
         });
+
     
         stopButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Implement stop button logic
+                if (isRunning) {
+                    isRunning = false;
+                    mower.pause();
+                    startButton.setText("Resume");
+                }
             }
         });
 
         resetButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                isRunning = false;
+                mower.reset();
                 int length = Integer.parseInt(lengthField.getText());
                 int width = Integer.parseInt(widthField.getText());
-                ControlSW.resetButtonClicked(length, width, GUI.this);
+                lawn = new Lawn(length, width);
+                startButton.setText("Start");
+                repaint();
             }
         });
     }
+
+    private void resumeMowing() {
+        if (isRunning) {
+            mower.resume();
+        }
+    }
+
 
     public void setLawnSize(int width, int height) {
         lawn = new Lawn(width, height);
@@ -144,7 +158,7 @@ public class GUI extends JFrame
     
         // Calculate the size of each square to fit the canvas
         int padding = 55;
-        int squareSize = Math.min((canvasWidth - 3* padding) / lawn.width, (canvasHeight - 2* padding) / lawn.height);
+        int squareSize = Math.min((canvasWidth - 4* padding) / lawn.width, (canvasHeight - 3* padding) / lawn.height);
     
         // Recalculate the square size to ensure all squares fit
         squareSize = Math.min(squareSize, Math.min(canvasWidth / lawn.width, canvasHeight / lawn.height));
