@@ -18,7 +18,7 @@ public class Mower
     public Mower(GUI gui)
     {
         this.gui = gui;
-        this.cutter = new Cutter(gui);
+        this.cutter = new Cutter();
         this.location = new Square(0, 0);
         this.state = new State();
         

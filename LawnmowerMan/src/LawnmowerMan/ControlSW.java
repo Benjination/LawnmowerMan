@@ -3,7 +3,6 @@ package LawnmowerMan;
 import javax.swing.SwingUtilities;
 
 public class ControlSW {
-    private static GUI gui;
     private static Mower mower;
 
     public static void startButtonClicked(int height, int width, GUI gui) {
@@ -42,7 +41,8 @@ public class ControlSW {
         SwingUtilities.invokeLater(() -> {
             int width = 20;
             int height = 20;
-            gui = new GUI(width, height);
+            @SuppressWarnings("unused")
+            GUI gui = new GUI(width, height);
         });
     }
 }

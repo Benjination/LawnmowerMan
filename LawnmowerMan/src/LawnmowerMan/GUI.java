@@ -19,7 +19,6 @@ public class GUI extends JFrame
     private JPanel lawnPanel;
     private Lawn lawn;
     private boolean isRunning = false;
-    private Timer timer;
     private Mower mower;
 
     public GUI(int width, int height) {
@@ -45,7 +44,7 @@ public class GUI extends JFrame
                 drawLawn(g);
             }
         };
-        lawnPanel.setPreferredSize(new Dimension(600, 400)); // Adjust as needed
+        lawnPanel.setPreferredSize(new Dimension(900, 400)); // Adjust as needed
         mainPanel.add(lawnPanel, BorderLayout.CENTER);
         mainPanel.add(sidePanel, BorderLayout.WEST);
 
@@ -136,12 +135,6 @@ public class GUI extends JFrame
         });
     }
 
-    private void resumeMowing() {
-        if (isRunning) {
-            mower.resume();
-        }
-    }
-
 
     public void setLawnSize(int width, int height) {
         lawn = new Lawn(width, height);
@@ -149,23 +142,37 @@ public class GUI extends JFrame
     }
 
     private void drawLawn(Graphics g) {
-        if (lawn == null || lawn.squares == null || lawn.squares.isEmpty()) {
-            return;
-        }
+        if (lawn == null || lawn.squares == null || lawn.squares.isEmpty()) return;
     
         int canvasWidth = getWidth();
         int canvasHeight = getHeight();
     
-        // Calculate the size of each square to fit the canvas
-        int padding = 55;
-        int squareSize = Math.min((canvasWidth - 4* padding) / lawn.width, (canvasHeight - 3* padding) / lawn.height);
+        // Add some padding
+        int padding = 100;
+        canvasWidth -= 3 * padding;
+        canvasHeight -= 2 * padding;
     
-        // Recalculate the square size to ensure all squares fit
-        squareSize = Math.min(squareSize, Math.min(canvasWidth / lawn.width, canvasHeight / lawn.height));
+        // Calculate the aspect ratio of the lawn
+        double lawnAspectRatio = (double) lawn.width / lawn.height;
+        double canvasAspectRatio = (double) canvasWidth / canvasHeight;
     
-        // Calculate the starting point to center the lawn
-        int startX = (canvasWidth - (lawn.width * squareSize)) / 2;
-        int startY = (canvasHeight - (lawn.height * squareSize)) / 2;
+        int squareSize;
+        int startX, startY;
+    
+        if (lawnAspectRatio > canvasAspectRatio) {
+            // Lawn is wider than the canvas
+            squareSize = canvasWidth / lawn.width;
+            startX = padding;
+            startY = padding + (canvasHeight - (squareSize * lawn.height)) / 2;
+        } else {
+            // Lawn is taller than the canvas
+            squareSize = canvasHeight / lawn.height;
+            startX = padding + (canvasWidth - (squareSize * lawn.width)) / 2;
+            startY = padding;
+        }
+    
+        // Ensure squareSize is at least 1 pixel
+        squareSize = Math.max(10, squareSize);
     
         for (Square square : lawn.squares) {
             // Fill the square

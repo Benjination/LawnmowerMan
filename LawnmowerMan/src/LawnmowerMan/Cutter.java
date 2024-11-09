@@ -3,11 +3,6 @@ package LawnmowerMan;
 public class Cutter
 {
     private Square currentSquare;
-    private GUI gui;
-
-    public Cutter(GUI gui) {
-        this.gui = gui;
-    }
 
 
     public static void Cut(Mower mower, GUI gui)
