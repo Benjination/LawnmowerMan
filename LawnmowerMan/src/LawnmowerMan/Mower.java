@@ -88,7 +88,7 @@ public class Mower
     
     private static void updateMowerAndGUI(Mower mower) {
         try {
-            Thread.sleep(100); // Wait for 100ms between cuts
+            Thread.sleep(10); // Wait for 100ms between cuts
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

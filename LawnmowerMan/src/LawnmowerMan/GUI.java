@@ -103,7 +103,8 @@ public class GUI extends JFrame
                 try {
                     int length = Integer.parseInt(lengthText); // Parse length
                     int width = Integer.parseInt(widthText);   // Parse width
-                    
+                    lawn.initializeLawn(width, length);
+                    repaint();
                     ControlSW.startButtonClicked(length, width, GUI.this); // Call your method with valid inputs
                 } catch (NumberFormatException ex) {
                     JOptionPane.showMessageDialog(GUI.this, "Please enter valid numbers for length and width.", "Input Error", JOptionPane.ERROR_MESSAGE);
@@ -128,18 +129,38 @@ public class GUI extends JFrame
         });
     }
 
+    public void setLawnSize(int width, int height) {
+        lawn = new Lawn(width, height);
+        repaint();
+    }
+
     private void drawLawn(Graphics g) {
-        if (lawn == null || lawn.squares == null) return;
+        if (lawn == null || lawn.squares == null || lawn.squares.isEmpty()) {
+            return;
+        }
     
-        int squareSize = 20;  // Adjust this value to change the size of each square
+        int canvasWidth = getWidth();
+        int canvasHeight = getHeight();
+    
+        // Calculate the size of each square to fit the canvas
+        int padding = 55;
+        int squareSize = Math.min((canvasWidth - 3* padding) / lawn.width, (canvasHeight - 2* padding) / lawn.height);
+    
+        // Recalculate the square size to ensure all squares fit
+        squareSize = Math.min(squareSize, Math.min(canvasWidth / lawn.width, canvasHeight / lawn.height));
+    
+        // Calculate the starting point to center the lawn
+        int startX = (canvasWidth - (lawn.width * squareSize)) / 2;
+        int startY = (canvasHeight - (lawn.height * squareSize)) / 2;
+    
         for (Square square : lawn.squares) {
             // Fill the square
             g.setColor(square.getColor());
-            g.fillRect(square.x * squareSize, square.y * squareSize, squareSize, squareSize);
+            g.fillRect(startX + square.x * squareSize, startY + square.y * squareSize, squareSize, squareSize);
             
             // Draw the border
-            g.setColor(Color.BLACK);  // You can change this to any color you prefer for the border
-            g.drawRect(square.x * squareSize, square.y * squareSize, squareSize, squareSize);
+            g.setColor(Color.BLACK);
+            g.drawRect(startX + square.x * squareSize, startY + square.y * squareSize, squareSize, squareSize);
         }
     }
 

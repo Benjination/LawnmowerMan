@@ -10,20 +10,27 @@ public class Square
 
     public Square(int x, int y)
     {
-        this.color = new Color (0, 100, 0);
+        this.color = new Color (10,93,0);
+        this.x = x;
+        this.y = y;
+    }
+
+    public Square(int x, int y, Color color)
+    {
+        this.color = color;
         this.x = x;
         this.y = y;
     }
 
     public static void Paint(Square square)
     {
-        Color darkGreen = new Color(0, 100, 0);
+        Color darkGreen = new Color(10,93,0);
         square.setColor(darkGreen);
     }
 
     public static void Repaint(Square square)
     {
-        Color lightGreen = new Color(144, 238, 144);
+        Color lightGreen = new Color(14,255,0);
         square.setColor(lightGreen);
     }
 
